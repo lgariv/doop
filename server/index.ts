@@ -1213,13 +1213,12 @@ function bridge(handler: (req: globalThis.Request) => Promise<globalThis.Respons
 }
 app.get('/.well-known/oauth-authorization-server', (req, res) => bridge(oAuthDiscoveryMetadata(auth))(req, res))
 
-/* Protected-resource metadata must echo the origin the CLIENT used (RFC 9728
-   — clients verify `resource` against the URL they connected to), while the
-   authorization server stays on the canonical origin. In dev the app may be
-   reached via :4300, :4301 (vite port bump) or :4400 — all must validate. */
-function protectedResourceMetadata(req: express.Request, res: express.Response) {
+/* Protected-resource metadata must identify the complete MCP resource URL.
+   Use the canonical public origin so TLS-terminating proxies cannot make the
+   advertised resource disagree with the URL used by the client. */
+function protectedResourceMetadata(_req: express.Request, res: express.Response) {
   res.json({
-    resource: `${req.protocol}://${req.get('host')}`,
+    resource: `${PUBLIC_ORIGIN}/mcp`,
     authorization_servers: [PUBLIC_ORIGIN],
     jwks_uri: `${PUBLIC_ORIGIN}/api/auth/mcp/jwks`,
     scopes_supported: ['openid', 'profile', 'email', 'offline_access'],
